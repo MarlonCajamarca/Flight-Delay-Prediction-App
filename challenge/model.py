@@ -1,13 +1,14 @@
+import os
+import joblib
 import numpy as np
 import pandas as pd
 from datetime import datetime
 
-from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import classification_report
-
 from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import classification_report
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
 
 from typing import Tuple, Union, List
 
@@ -85,7 +86,7 @@ class DelayModel:
         target: pd.DataFrame
     ) -> None:
         """
-        Fit model with preprocessed data.
+        Fit and save Classifier model using previously preprocessed data.
 
         Args:
             features (pd.DataFrame): preprocessed data.
@@ -119,7 +120,6 @@ class DelayModel:
             'solver': ['newton-cg', 'lbfgs', 'liblinear', 'sag', 'saga'],
             'class_weight': ['balanced']
         }
-        
         # Define a grid search with a focus on recall
         grid_search = GridSearchCV(
             LogisticRegression(max_iter=10000), # Increased max_iter for convergence with some solvers
@@ -127,12 +127,15 @@ class DelayModel:
             scoring='recall', 
             cv=5
         )
-        
         # Fit the grid search to the data
         grid_search.fit(x_train, y_train)
-        
         # Use the best estimator found by the grid search
         self._model = grid_search.best_estimator_
+        # Create model folder if it does not exist
+        if not os.path.exists('model'):
+            os.makedirs('model')
+        # Save model using joblib
+        joblib.dump(self._model, 'model/model.joblib')
 
     def predict(
         self,
@@ -147,8 +150,9 @@ class DelayModel:
         Returns:
             (List[int]): predicted targets.
         """
-        delay_predictions = self._model.predict(features).tolist()
-        return delay_predictions
+        self._model = joblib.load('model/model.joblib')
+        delay_predictions = self._model.predict(features)
+        return delay_predictions.tolist()
     
 class FeatureGenerator(object):
     """
