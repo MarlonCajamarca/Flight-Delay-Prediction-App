@@ -10,14 +10,14 @@ class TestModel(unittest.TestCase):
     FEATURES_COLS = [
         "OPERA_Latin American Wings", 
         "MES_7",
-        "MES_10",
         "OPERA_Grupo LATAM",
+        "OPERA_Sky Airline",
+        "MES_10",
+        "MES_8",
         "MES_12",
         "TIPOVUELO_I",
-        "MES_4",
-        "MES_11",
-        "OPERA_Sky Airline",
-        "OPERA_Copa Air"
+        "OPERA_JetSmart SPA",
+        "MES_4"
     ]
 
     TARGET_COL = [
@@ -28,7 +28,7 @@ class TestModel(unittest.TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.model = DelayModel()
-        self.data = pd.read_csv(filepath_or_buffer="../data/data.csv")
+        self.data = pd.read_csv(filepath_or_buffer="data/data.csv")
         
 
     def test_model_preprocess_for_training(
