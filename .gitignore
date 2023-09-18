@@ -3,6 +3,11 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Custom ignores
+reports/
+lib/
+*.zip
+
 # C extensions
 *.so
 
@@ -50,7 +55,7 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 cover/
-reports/
+
 
 # Translations
 *.mo
