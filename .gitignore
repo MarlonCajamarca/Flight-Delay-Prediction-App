@@ -4,7 +4,7 @@ __pycache__/
 *$py.class
 
 # Custom ignores
-reports/
+# reports/
 lib/
 *.zip
 
