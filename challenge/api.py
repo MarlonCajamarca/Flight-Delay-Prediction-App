@@ -137,5 +137,5 @@ async def post_predict(data: Dict[str, List[Flight]]) -> dict:
 
 # For debugging purposes:
 # uncomment the following lines and run `python api.py` from the command line
-# if __name__ == "__main__":
-#     uvicorn.run(app, host="0.0.0.0", port=8000)
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8080)

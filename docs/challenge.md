@@ -14,10 +14,9 @@
 12. Git add, commit and push all changes to `dev` branch
 13. Implement and past test for challenge Part 1 and push to `dev` branch
 14. Implement and past test for challenge Part 2 and push to `dev` branch
-
-# Fixes
-* Add `xgboost` library to `requirements.txt` file
-* Fix incorrect use of Union from the typing module. The correct way to use Union is to provide multiple types separated by commas within square brackets.
+15. Implement and past test for challenge Part 3 and push to `dev` branch
+16. Make a PR from `dev` branch to `main` branch
+17. Implement Ci/CD pipeline for `main` branch
 
 # Challenge Part 1
 ## Data Preprocessing Pipeline
@@ -47,7 +46,7 @@
 # Weights associated with classes in the form {class_label: weight}
 'class_weight': ['balanced'] 
 ```
-* The trained model was stored in a newly created `models` folder. The model was saved using the `joblib` library and was called `model.joblib`. This would be the model to be served for serving predictions. Even thoug it is not a good practice to upload ML models to repository, the fitted model was only 1.4K in size. Additionally, in the name of transparency the model has been uploaded for the evaluators to track all artifacts geenrated during the model operationalization challenge. Therefore, the trained model was pushed to the repository.
+* The trained model was stored in a newly created `models` folder. The model was saved using the `pickle` library and was called `model.pkl`. This would be the model to be served for serving predictions. Even thoug it is not a good practice to upload ML models to repository, the fitted model was only 1.0K in size. Additionally, in the name of transparency the model has been uploaded for the evaluators to track all artifacts geenrated during the model operationalization challenge. Therefore, the trained model was pushed to the repository.
 
 ## Model Selection Pipeline
 * `XGBCclassifier` VS `LogisticRegression`
@@ -55,14 +54,15 @@
   * However, it's essential to note that the differences between the two models are minimal. It may be worth considering other factors like the training time, ease of deployment, interpretability, and any business costs associated with false positives (incorrectly predicting a flight as delayed) for a real-world application.
 
 # Challenge Part 2
-
-
- 
+* A FastAPI API was created in the `challenge/api.py` file. The API has two endpoints:
+  * `/predict` endpoint: This endpoint accepts a POST request with a JSON payload containing the features of a flight. The API then returns a JSON response containing the predicted class label for the flight (0 for non-delay flight & 1 for delayed flight).
+  * `/health` endpoint: This endpoint accepts a GET request and returns a JSON response containing the status of the API.
+  * The API was tested using the `api-test` test. The test passed.
+  
 # Challenge Part 3
 
-## Appraoch 1: Zipped Deployment Package
+## Approach 1: Zipped Deployment Package
 ### API Packaging
-
 Deploying FastAPI API in AWS Lambda using zipped deployment package.
 * Create a requirements-prod.txt listing the production dependencies only
 ```
@@ -98,13 +98,45 @@ zip -u lambda_function.zip model/model.pkl -j
 ## Appraoch 2: Container Image
 ### FastAPI Docker Image
 * Create a containerized FastAPI API using the following Dockerfile
-* Build the Docker image
+  * Build the Docker image for dev environment
 ```
-docker build -t flight-delay-app-image .
+docker build -f Dockerfile-dev -t flight-delay-pred-app-lambda .
 ```
-* Run the Docker container
+  * Build the Docker image for prod environment
 ```
-docker run -d --name flight-delay-app-container -p 80:80 flight-delay-app-image
+docker build -f Dockerfile-prod -t flight-delay-pred-app-lambda .
 ```
-* Test the API: All api-stress tests passed using containerized FastAPI API
+* Run the Docker container for development environment
 ```
+docker run -d --name flight-delay-app-container -p 8080:8080 flight-delay-pred-app-lambda
+```
+* Test the API: All api-stress tests passed using dev containerized FastAPI API
+
+### Push Dockerized API to AWS ECR
+* Create a new repository in AWS ECR
+```
+flight-delay-pred-app-lambda
+```
+* Authenticate Docker client to AWS ECR
+```
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 245582572290.dkr.ecr.us-east-1.amazonaws.com
+```
+* Tag the Docker image
+```
+docker tag flight-delay-pred-app-lambda:latest 245582572290.dkr.ecr.us-east-1.amazonaws.com/flight-delay-pred-app-lambda:latest
+```
+* Push the Docker image to AWS ECR
+```
+docker push 245582572290.dkr.ecr.us-east-1.amazonaws.com/flight-delay-pred-app-lambda:latest
+```
+### Deploy API in AWS Lambda from ECR
+* Create a new Lambda function in AWS console from ECR container image flight-delay-pred-app-lambda:latest
+* configure, test and get the Lambda Function URL working properly
+* Test the Deployed API: All api-stress tests passed using AWs Lambda API (Lambda Function URL used for stress-test available in makefile)
+* The results from the stress test are available in the `reports` folder.
+### Conclusion
+* The container image approach is recommended for deploying FastAPI APIs in AWS Lambda. The unzipped deployment package size is 310.5 MB, which is way above the 250 MB limit for AWS Lambda. However, the container image size is only 0.5 GB, which is well below the 10 GB limit for AWS Lambda. Therefore, this approach is recommended for majority of ML-based APIs
+
+# Challenge Part 4
+## CI/CD Pipeline
+
