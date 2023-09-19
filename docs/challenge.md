@@ -139,4 +139,12 @@ docker push 245582572290.dkr.ecr.us-east-1.amazonaws.com/flight-delay-pred-app-l
 
 # Challenge Part 4
 ## CI/CD Pipeline
+* A CI/CD pipeline was created using GitHub Actions. The pipeline is triggered when a new commit is pushed to the `main` branch. The pipeline consists of the following steps:
+  * Checkout the repository
+  * Setup Python 3.10
+  * Install dependencies
+  * Run tests
+  * Build Docker image
+  * Push Docker image to AWS ECR
+  * Deploy Docker image to AWS Lambda
 

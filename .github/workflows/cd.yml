@@ -1,7 +1,40 @@
 name: 'Continuous Delivery'
 
 on:
-  ...
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+env:
+  docker_image_dev: flight-delay-pred-app-lambda-dev
+  docker_image_prod: flight-delay-pred-app-lambda-prod
 
 jobs:
-  ...
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build dev docker image
+        env:
+          dockerfile_dev: Dockerfile-dev
+          docker_image_dev: flight-delay-pred-app-lambda-dev
+        run: 
+          docker build -f ${{ env.dockerfile_dev }} -t ${{ env.docker_image_dev }} .
+      - name: Run dev docker image
+        env:
+          docker_container_dev: flight-delay-app-container
+          docker_api_port: 8080:8080
+          docker_image_dev: flight-delay-pred-app-lambda-dev
+        run: 
+          docker run -d --name ${{ env.docker_container_dev }} -p ${{ env.docker_api_port }} ${{ env.docker_image_dev }}
+      - name:
+        env:
+          dockerfile_prod: Dockerfile-prod
+          docker_image_prod: flight-delay-pred-app-lambda-prod
+        run: 
+          docker build -f ${{ env.dockerfile_prod }} -t ${{ env.docker_image_prod }} .
