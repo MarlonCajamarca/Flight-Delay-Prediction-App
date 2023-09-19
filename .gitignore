@@ -7,6 +7,7 @@ __pycache__/
 # reports/
 lib/
 *.zip
+.DS_Store
 
 # C extensions
 *.so
