@@ -138,13 +138,86 @@ docker push 245582572290.dkr.ecr.us-east-1.amazonaws.com/flight-delay-pred-app-l
 * The container image approach is recommended for deploying FastAPI APIs in AWS Lambda. The unzipped deployment package size is 310.5 MB, which is way above the 250 MB limit for AWS Lambda. However, the container image size is only 0.5 GB, which is well below the 10 GB limit for AWS Lambda. Therefore, this approach is recommended for majority of ML-based APIs
 
 # Challenge Part 4
-## CI/CD Pipeline
-* A CI/CD pipeline was created using GitHub Actions. The pipeline is triggered when a new commit is pushed to the `main` branch. The pipeline consists of the following steps:
-  * Checkout the repository
-  * Setup Python 3.10
-  * Install dependencies
-  * Run tests
-  * Build Docker image
-  * Push Docker image to AWS ECR
-  * Deploy Docker image to AWS Lambda
+## CI/CD Pipelines using Github Actions
+### Continuous Integration Pipeline
+A continuous integration pipeline has been implemented using GitHub Actions workflow using the file named `ci.yml`. This workflow is triggered by push events to the `main` branch, pull request events targeting the `main` branch, and manual workflow dispatch events.
 
+The workflow has a single job named `build` that runs on an Ubuntu latest runner. The `build` job consists of several steps that are executed in sequence:
+
+1. The `actions/checkout` action is used to check out the source code from the repository.
+
+2. The `actions/setup-python` action is used to set up a Python environment with version 3.10.
+
+3. The `make venv` command is used to create a virtual environment for the project.
+
+4. The `source .venv/bin/activate` command is used to activate the virtual environment.
+
+5. The `make install` command is used to install the project dependencies.
+
+6. The `make model-test` command is used to run the model tests.
+
+7. The `make api-test` command is used to run the API tests.
+
+By using GitHub Actions, this workflow can be automated and run on every push or pull request, ensuring that the project is always tested and up-to-date.
+
+### Continuous Deployment Pipeline
+A continuous deployment pipeline has been implemented using GitHub Actions workflow file named `cd.yml`. This workflow is triggered by push events to the `main` branch, pull request events targeting the `main` branch, and manual workflow dispatch events.
+
+The workflow has two jobs: `deploy` and `test_api`. The `deploy` job runs on an Ubuntu latest runner and consists of several steps that are executed in sequence:
+
+1. The `actions/checkout` action is used to check out the source code from the repository.
+
+2. The `docker build` command is used to build a Docker image for the development environment using the `Dockerfile-dev` file. The image is tagged with the name `flight-delay-pred-app-lambda-dev`.
+
+3. The `docker run` command is used to run the Docker image for the development environment. The container is named `flight-delay-app-container` and is mapped to port `8080` on the host machine.
+
+4. The `docker build` command is used to build a Docker image for the production environment using the `Dockerfile-prod` file. The image is tagged with the name `flight-delay-pred-app-lambda-prod`.
+5. __CAVIATS!__
+   1. Given that I am using my enterprise/private AWS Credentials, the AWS authorization, tagging and deployment of the Docker image to AWS ECR is not part of this CD pipeline. For evaluating the steps for deploying the Docker image to AWS ECR, please refer to the `Push Dockerized API to AWS ECR`
+   2. The AWS Lambda deployment is not part of this CD pipeline. For evaluating the steps for deploying the Docker image to AWS Lambda, please refer to the `Deploy API in AWS Lambda from ECR`.
+
+The `test_api` job runs on an Ubuntu latest runner and depends on the `deploy` job. This job consists of several steps that are executed in sequence:
+
+1. The `actions/checkout` action is used to check out the source code from the repository.
+
+2. The `actions/setup-python` action is used to set up a Python environment with version 3.10.
+
+3. The `make venv` command is used to create a virtual environment for the project.
+
+4. The `source .venv/bin/activate` command is used to activate the virtual environment.
+
+5. The `make install` command is used to install the project dependencies.
+
+6. The `make stress-test` command is used to run stress tests on the API.
+
+# Evaluation Report
+## Challenge Part 1
+The `model-test` test passed. The model was trained using a basic hyperparameter tuning approach (using Grid Search) instead of the approach sugested by the DS (using just class weights throug manual calculation of scaling ratio and no hyperparamter tuning). A cross validation scheam was also added for a better model training schema. 
+## Challenge Part 2
+A FastAPI API  was created in the `challenge/api.py` file. The API has two endpoints: `/predict` and `/health`.
+
+The `/predict` endpoint accepts a POST request with a JSON payload containing the features of a flight. The API then returns a JSON response containing the predicted class label for the flight. The predicted class label is either 0 for non-delayed flights or 1 for delayed flights. This endpoint is used to predict whether a flight will be delayed or not based on the input features.
+
+The `/health` endpoint accepts a GET request and returns a JSON response containing the status of the API. This endpoint is used to check the health of the API and ensure that it is running correctly.
+
+The API was tested using the `api-test` test, which passed. This test ensures that the API is functioning correctly and returning the expected results.
+## Challenge Part 3
+Two different approaches for deploying a FastAPI API in AWS Lambda were tested. The first approach involves creating a zipped deployment package, while the second approach involves creating a container image.
+
+The first approach involves creating a `requirements-prod.txt` file that lists the production dependencies for the API. The dependencies are then installed in a `lib` folder using the `pip install` command. The `lib` folder is then zipped along with the `api.py` and `model.pkl` files to create the deployment package. However, this approach is not recommended for FastAPI APIs in AWS Lambda because the unzipped deployment package size is 310.5 MB, which is above the 250 MB limit for AWS Lambda. Removing the `scikit-learn` library from the `requirements-prod.txt` file can reduce the deployment package size, but this would mean that the model cannot be loaded in the API.
+
+The second approach involves creating a containerized FastAPI API using a Dockerfile. The Dockerfile is used to build a Docker image for the development (`Dockerfile-dev`)and production (`Dockerfile-prod`)environments. 
+The Docker container for the development environment is then run using the `docker run` command described in the correponding section. The API is tested on local machine URL using the `api-stress` tests, which passed using the dev containerized FastAPI API. 
+Then a production docker image is built using the `Dockerfile-prod` image, which is beaing created following AWS guidelines for building Docker images targeted to AWS Lambda functions. The image is then pushed to AWS ECR and a new Lambda function is (manually) created in AWS console and API is deployed from the ECR container image. The deployed API is then tested using the `api-stress` tests, which passed using the AWS Lambda API. The results from the stress test are available in the `reports` folder.
+
+The second approach is recommended for deploying FastAPI APIs in AWS Lambda because the container image size is only 0.5 GB, which is well below the 10 GB limit for AWS Lambda. This approach is suitable for most ML-based APIs and provides a more efficient and scalable way to deploy FastAPI APIs in AWS Lambda.
+## Challenge Part 4
+An implementation of CI/CD pipelines using GitHub Actions was used. The pipelines consist of two workflows: a continuous integration pipeline and a continuous deployment pipeline.
+
+The continuous integration pipeline is implemented using the `ci.yml` workflow file. This workflow is triggered by push events to the `main` branch, pull request events targeting the `main` branch, and manual workflow dispatch events. The workflow has a single job named `build` that runs on an Ubuntu latest runner. The `build` job consists of several steps that are executed in sequence, including setting up a Python environment, creating a virtual environment for the project, installing project dependencies, and running model and API tests. By using GitHub Actions, this workflow can be automated and run on every push or pull request, ensuring that the project is always tested and up-to-date.
+
+The continuous deployment pipeline is implemented using the `cd.yml` workflow file. This workflow is triggered by push events to the `main` branch, pull request events targeting the `main` branch, and manual workflow dispatch events. The workflow has two jobs: `deploy` and `test_api`. The `deploy` job runs on an Ubuntu latest runner and consists of several steps that are executed in sequence, including building Docker images for the development and production environments. The `test_api` job runs on an Ubuntu latest runner and depends on the `deploy` job. This job consists of several steps that are executed in sequence, including creating a virtual environment for the project, installing project dependencies, and running stress tests on the API.
+
+However, there are two caveats to this pipeline. Firstly, the AWS authorization, tagging, and deployment of the Docker image to AWS ECR is not part of this CD pipeline. Secondly, the AWS Lambda deployment is not part of this CD pipeline. For evaluating the steps for deploying the Docker image to AWS ECR and AWS Lambda, please refer to the `Push Dockerized API to AWS ECR` and `Deploy API in AWS Lambda from ECR` respectively.
+
+Overall, these CI/CD pipelines provide a robust and efficient way to develop, test, and deploy machine learning-based FastAPI APIs. By using GitHub Actions, these pipelines can be automated and run on every push or pull request, ensuring that the project is always tested and up-to-date.
