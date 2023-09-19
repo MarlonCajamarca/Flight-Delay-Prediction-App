@@ -1,18 +1,24 @@
-import joblib
+import pickle
 import fastapi
 import pandas as pd
+import uvicorn
 from typing import List, Dict
 from fastapi import HTTPException
 from pydantic import BaseModel, validator, constr
 
-import uvicorn
+from mangum import Mangum
 
 # Create the FastAPI app
 app = fastapi.FastAPI()
 
+# Wrap the FastAPI app with Mangum
+# This allows the app to run on AWS Lambda
+handler = Mangum(app)
+
 # Load the model at startup.
 # Done outside any function so that the model is loaded when the script starts and is kept in memory.
-_model = joblib.load('model/model.joblib')
+with open('model/model.pkl', 'rb') as f:
+    _model = pickle.load(f)
 
 # Define the top 10 features used to train the model (using feature importance as suggested by DS)
 # Ensure the order of columns matches the trained model.
@@ -110,18 +116,17 @@ async def post_predict(data: Dict[str, List[Flight]]) -> dict:
 
     # Preprocess data
     df = pd.DataFrame([flight.dict() for flight in flights])
-    for feature in top_10_features:
-        if feature not in df.columns:
-            df[feature] = 0
-
     # Convert OPERA and TIPOVUELO to expected format
-    df = pd.get_dummies(df, columns=["OPERA", "TIPOVUELO"])
-
+    df = pd.get_dummies(df, columns=["OPERA", "TIPOVUELO"]).astype(int)
     # Make sure MES is one-hot encoded as well
     for i in range(1, 13):  # Months 1-12
         column_name = f"MES_{i}"
         df[column_name] = (df["MES"] == i).astype(int)
     df.drop("MES", axis=1, inplace=True)
+
+    for feature in top_10_features:
+        if feature not in df.columns:
+            df[feature] = 0
 
     # Ensure the order of columns matches the trained model
     df = df[top_10_features]
@@ -132,5 +137,5 @@ async def post_predict(data: Dict[str, List[Flight]]) -> dict:
 
 # For debugging purposes:
 # uncomment the following lines and run `python api.py` from the command line
-# if __name__ == "__main__":
-#     uvicorn.run(app, host="0.0.0.0", port=8000)
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8080)

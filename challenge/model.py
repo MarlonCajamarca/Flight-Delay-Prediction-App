@@ -1,5 +1,5 @@
 import os
-import joblib
+import pickle
 import numpy as np
 import pandas as pd
 from datetime import datetime
@@ -134,8 +134,9 @@ class DelayModel:
         # Create model folder if it does not exist
         if not os.path.exists('model'):
             os.makedirs('model')
-        # Save model using joblib
-        joblib.dump(self._model, 'model/model.joblib')
+        # Save model using pickle
+        with open('model/model.pkl', 'wb') as f:
+            pickle.dump(self._model, f)
 
     def predict(
         self,
@@ -150,7 +151,9 @@ class DelayModel:
         Returns:
             (List[int]): predicted targets.
         """
-        self._model = joblib.load('model/model.joblib')
+        # Load model using pickle
+        with open('model/model.pkl', 'rb') as f:
+            self._model = pickle.load(f)
         delay_predictions = self._model.predict(features)
         return delay_predictions.tolist()
     

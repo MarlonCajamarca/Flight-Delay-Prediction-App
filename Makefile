@@ -30,7 +30,7 @@ install:		## Install dependencies
 	pip install -r requirements.txt
 
 # Define stress-test target to run stress tests
-STRESS_URL = http://127.0.0.1:8000 
+STRESS_URL = https://eacknmfbuoeqpzh6gsca4tyqc40spost.lambda-url.us-east-1.on.aws/ 
 .PHONY: stress-test
 stress-test:
 	# change stress url to your deployed app 
