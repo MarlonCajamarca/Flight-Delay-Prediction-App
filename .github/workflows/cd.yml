@@ -32,7 +32,7 @@ jobs:
           docker_image_dev: flight-delay-pred-app-lambda-dev
         run: 
           docker run -d --name ${{ env.docker_container_dev }} -p ${{ env.docker_api_port }} ${{ env.docker_image_dev }}
-      - name:
+      - name: Build prod docker image
         env:
           dockerfile_prod: Dockerfile-prod
           docker_image_prod: flight-delay-pred-app-lambda-prod
