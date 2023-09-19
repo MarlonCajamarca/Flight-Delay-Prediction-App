@@ -50,9 +50,7 @@ jobs:
       - name: Create virtualenv
         run: |
           make venv
-      - name: Activate virtualenv
-        run: |
-          source venv/bin/activate
+          source .venv/bin/activate
       - name: Install dependencies
         run: |
           make install
